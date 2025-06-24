@@ -12,7 +12,7 @@ dotenv.config(); // Load environment variables
 const app = express();
 
 // Middleware
-const allowedOrigins = ['https://najint.vercel.app', 'http://localhost:5173'];
+const allowedOrigins = ['https://skyfall-62c.vercel.app', 'http://localhost:5173'];
 app.use(
   cors({
     origin: function (origin, callback) {
