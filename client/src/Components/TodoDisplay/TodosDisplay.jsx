@@ -9,7 +9,7 @@ import {
   Layers,
   Tag,
   Clock,
-  Inbox, // Icon for empty state
+  Inbox,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -30,6 +30,35 @@ function formatCountdown(timeMs) {
   return `${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
 }
 
+function Loader() {
+  // Windows style Microsoft spinner with Tailwind
+  return (
+    <div className="flex justify-center items-center mt-20">
+      <svg
+        className="animate-spin h-12 w-12 text-teal-400"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        aria-label="Loading"
+      >
+        <circle
+          className="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          strokeWidth="4"
+        ></circle>
+        <path
+          className="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+        ></path>
+      </svg>
+    </div>
+  );
+}
+
 export default function TodoDisplay() {
   const [todos, setTodos] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -39,35 +68,32 @@ export default function TodoDisplay() {
   const [filterSection, setFilterSection] = useState('');
   const [viewMode, setViewMode] = useState('list');
   const [showFilters, setShowFilters] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [, setTick] = useState(0);
 
   useEffect(() => {
-    fetchTodos();
-    fetchCourses();
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const [todosRes, coursesRes] = await Promise.all([
+          axios.get(`${API}/todos`),
+          axios.get(`${API}/courses`),
+        ]);
+        setTodos(todosRes.data);
+        setCourses(coursesRes.data);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+      }
+      setLoading(false);
+    }
+
+    fetchData();
 
     const interval = setInterval(() => {
       setTick(t => t + 1);
     }, 1000);
     return () => clearInterval(interval);
   }, []);
-
-  const fetchTodos = async () => {
-    try {
-      const res = await axios.get(`${API}/todos`);
-      setTodos(res.data);
-    } catch (err) {
-      console.error('Error fetching todos:', err);
-    }
-  };
-
-  const fetchCourses = async () => {
-    try {
-      const res = await axios.get(`${API}/courses`);
-      setCourses(res.data);
-    } catch (err) {
-      console.error('Error fetching courses:', err);
-    }
-  };
 
   const filteredTodos = todos.filter(todo => {
     return (
@@ -77,6 +103,10 @@ export default function TodoDisplay() {
       (!filterSection || todo.section.toLowerCase().includes(filterSection.toLowerCase()))
     );
   });
+
+  if (loading) {
+    return <Loader />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white px-6 py-12">

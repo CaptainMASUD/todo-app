@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const API = 'http://localhost:4000/api';
+const API = 'https://todo-app-api-theta.vercel.app/api';
 
 export default function CourseTodoApp() {
   const [courses, setCourses] = useState([]);
