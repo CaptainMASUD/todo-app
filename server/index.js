@@ -13,17 +13,21 @@ const app = express();
 
 // Middleware
 const allowedOrigins = ['https://skyfall-62c.vercel.app', 'http://localhost:5173'];
+
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (e.g., server-to-server communication)
+      // Allow requests with no origin (like Postman or server-to-server)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) === -1) {
-        const msg = 'The CORS policy for this site does not allow access from the specified origin.';
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        const msg = `The CORS policy for this site does not allow access from the origin: ${origin}`;
         return callback(new Error(msg), false);
       }
-      return callback(null, true);
-    }
+    },
+    credentials: true, // if you want to allow cookies or auth headers
   })
 );
 app.use(cookieParser())
