@@ -58,6 +58,8 @@ export default function CourseTodoApp() {
   const [showTodoForm, setShowTodoForm] = useState(false);
 
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteModal, setDeleteModal] = useState({ open: false, type: '', id: null });
 
   useEffect(() => {
     async function fetchData() {
@@ -76,10 +78,31 @@ export default function CourseTodoApp() {
       }
       setLoading(false);
     }
-
     fetchData();
   }, []);
 
+  // Re-fetch functions for after actions
+  const fetchCourses = async () => {
+    try {
+      const res = await axios.get(`${API}/courses`);
+      setCourses(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      setCourses([]);
+    }
+  };
+
+  const fetchTodos = async () => {
+    try {
+      const res = await axios.get(`${API}/todos`);
+      setTodos(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      console.error('Error fetching todos:', error);
+      setTodos([]);
+    }
+  };
+
+  // Course submit
   const handleCourseSubmit = async (e) => {
     e.preventDefault();
     if (!courseCode.trim() || !courseName.trim()) {
@@ -101,16 +124,7 @@ export default function CourseTodoApp() {
     }
   };
 
-  const fetchCourses = async () => {
-    try {
-      const res = await axios.get(`${API}/courses`);
-      setCourses(Array.isArray(res.data) ? res.data : []);
-    } catch (error) {
-      console.error('Error fetching courses:', error);
-      setCourses([]);
-    }
-  };
-
+  // Todo submit
   const handleTodoSubmit = async (e) => {
     e.preventDefault();
     if (!selectedCourse) {
@@ -152,36 +166,34 @@ export default function CourseTodoApp() {
     }
   };
 
-  const fetchTodos = async () => {
-    try {
-      const res = await axios.get(`${API}/todos`);
-      setTodos(Array.isArray(res.data) ? res.data : []);
-    } catch (error) {
-      console.error('Error fetching todos:', error);
-      setTodos([]);
-    }
+  // Open modal
+  const openDeleteModal = (type, id) => {
+    setDeleteModal({ open: true, type, id });
   };
 
-  const handleDeleteCourse = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this course?')) return;
-    try {
-      await axios.delete(`${API}/courses/${id}`);
-      fetchCourses();
-    } catch (error) {
-      console.error('Error deleting course:', error);
-      alert('Failed to delete course.');
-    }
+  // Close modal
+  const closeDeleteModal = () => {
+    if (!deleting) setDeleteModal({ open: false, type: '', id: null });
   };
 
-  const handleDeleteTodo = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this todo?')) return;
+  // Confirm delete handler
+  const confirmDelete = async () => {
+    const { type, id } = deleteModal;
+    setDeleting(true);
     try {
-      await axios.delete(`${API}/todos/${id}`);
-      fetchTodos();
+      if (type === 'course') {
+        await axios.delete(`${API}/courses/${id}`);
+        fetchCourses();
+      } else if (type === 'todo') {
+        await axios.delete(`${API}/todos/${id}`);
+        fetchTodos();
+      }
+      setDeleteModal({ open: false, type: '', id: null });
     } catch (error) {
-      console.error('Error deleting todo:', error);
-      alert('Failed to delete todo.');
+      console.error(`Error deleting ${type}:`, error);
+      alert(`Failed to delete ${type}.`);
     }
+    setDeleting(false);
   };
 
   if (loading) return <Loader />;
@@ -216,7 +228,7 @@ export default function CourseTodoApp() {
           </button>
         </div>
 
-        {/* Forms - appear below buttons */}
+        {/* Forms */}
         <div className="max-w-xl mx-auto space-y-12 mb-12">
           <AnimatePresence>
             {showCourseForm && (
@@ -364,9 +376,10 @@ export default function CourseTodoApp() {
                     <p className="text-gray-300">{courseName}</p>
                   </div>
                   <button
-                    onClick={() => handleDeleteCourse(_id)}
+                    onClick={() => openDeleteModal('course', _id)}
                     className="text-amber-400 hover:text-amber-600 transition-colors"
                     aria-label="Delete course"
+                    disabled={deleting}
                   >
                     <Trash size={22} />
                   </button>
@@ -409,9 +422,10 @@ export default function CourseTodoApp() {
                     </p>
                   </div>
                   <button
-                    onClick={() => handleDeleteTodo(_id)}
+                    onClick={() => openDeleteModal('todo', _id)}
                     className="text-amber-400 hover:text-amber-600 transition-colors"
                     aria-label="Delete todo"
+                    disabled={deleting}
                   >
                     <Trash size={22} />
                   </button>
@@ -421,6 +435,68 @@ export default function CourseTodoApp() {
           )}
         </section>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteModal.open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              className="bg-[#112b3c] p-6 rounded-lg shadow-lg max-w-sm w-full text-gray-100"
+            >
+              <h3 className="text-xl font-bold mb-4">Confirm Delete</h3>
+              <p className="mb-6">
+                Are you sure you want to delete this {deleteModal.type}?
+              </p>
+              <div className="flex justify-end gap-4">
+                <button
+                  onClick={closeDeleteModal}
+                  disabled={deleting}
+                  className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={deleting}
+                  className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 transition flex items-center gap-2"
+                >
+                  {deleting && (
+                    <svg
+                      className="animate-spin h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      ></path>
+                    </svg>
+                  )}
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
