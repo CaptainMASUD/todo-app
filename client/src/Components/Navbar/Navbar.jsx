@@ -19,7 +19,7 @@ export default function Navbar() {
   return (
     <nav className="bg-slate-900 text-teal-300 shadow-sm sticky top-0 z-50 border-b border-slate-700">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-        <h1 className="text-xl font-bold tracking-tight text-teal-400">Captains</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-teal-400">SkyFall</h1>
 
         {/* Desktop Nav */}
         <div className="hidden md:flex gap-6 items-center">
@@ -29,7 +29,7 @@ export default function Navbar() {
             </NavLink>
           ))}
           <a
-            href="https://discord.gg/your-invite"
+            href="https://discord.gg/bFKWFbXgPZ"
             target="_blank"
             rel="noopener noreferrer"
             className="bg-gradient-to-r from-teal-500 to-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:from-teal-600 hover:to-indigo-600 transition"
