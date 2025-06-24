@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const API = 'http://localhost:4000/api';
+const API = 'https://todo-app-api-theta.vercel.app/api';
 
 function getDaysLeft(dueDate) {
   const today = new Date();
