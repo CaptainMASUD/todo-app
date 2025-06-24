@@ -13,6 +13,34 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const API = 'https://todo-app-api-theta.vercel.app/api';
 
+function Loader() {
+  return (
+    <div className="flex justify-center items-center mt-20">
+      <svg
+        className="animate-spin h-12 w-12 text-teal-400"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        aria-label="Loading"
+      >
+        <circle
+          className="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          strokeWidth="4"
+        ></circle>
+        <path
+          className="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+        ></path>
+      </svg>
+    </div>
+  );
+}
+
 export default function CourseTodoApp() {
   const [courses, setCourses] = useState([]);
   const [courseCode, setCourseCode] = useState('');
@@ -29,30 +57,28 @@ export default function CourseTodoApp() {
   const [showCourseForm, setShowCourseForm] = useState(false);
   const [showTodoForm, setShowTodoForm] = useState(false);
 
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    fetchCourses();
-    fetchTodos();
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const [coursesRes, todosRes] = await Promise.all([
+          axios.get(`${API}/courses`),
+          axios.get(`${API}/todos`),
+        ]);
+        setCourses(Array.isArray(coursesRes.data) ? coursesRes.data : []);
+        setTodos(Array.isArray(todosRes.data) ? todosRes.data : []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setCourses([]);
+        setTodos([]);
+      }
+      setLoading(false);
+    }
+
+    fetchData();
   }, []);
-
-  const fetchCourses = async () => {
-    try {
-      const res = await axios.get(`${API}/courses`);
-      setCourses(Array.isArray(res.data) ? res.data : []);
-    } catch (error) {
-      console.error('Error fetching courses:', error);
-      setCourses([]);
-    }
-  };
-
-  const fetchTodos = async () => {
-    try {
-      const res = await axios.get(`${API}/todos`);
-      setTodos(Array.isArray(res.data) ? res.data : []);
-    } catch (error) {
-      console.error('Error fetching todos:', error);
-      setTodos([]);
-    }
-  };
 
   const handleCourseSubmit = async (e) => {
     e.preventDefault();
@@ -61,7 +87,10 @@ export default function CourseTodoApp() {
       return;
     }
     try {
-      await axios.post(`${API}/courses`, { courseCode: courseCode.trim(), courseName: courseName.trim() });
+      await axios.post(`${API}/courses`, {
+        courseCode: courseCode.trim(),
+        courseName: courseName.trim(),
+      });
       setCourseCode('');
       setCourseName('');
       setShowCourseForm(false);
@@ -69,6 +98,16 @@ export default function CourseTodoApp() {
     } catch (error) {
       console.error('Error adding course:', error);
       alert('Failed to add course.');
+    }
+  };
+
+  const fetchCourses = async () => {
+    try {
+      const res = await axios.get(`${API}/courses`);
+      setCourses(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      setCourses([]);
     }
   };
 
@@ -113,6 +152,16 @@ export default function CourseTodoApp() {
     }
   };
 
+  const fetchTodos = async () => {
+    try {
+      const res = await axios.get(`${API}/todos`);
+      setTodos(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      console.error('Error fetching todos:', error);
+      setTodos([]);
+    }
+  };
+
   const handleDeleteCourse = async (id) => {
     if (!window.confirm('Are you sure you want to delete this course?')) return;
     try {
@@ -134,6 +183,8 @@ export default function CourseTodoApp() {
       alert('Failed to delete todo.');
     }
   };
+
+  if (loading) return <Loader />;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0c1427] via-[#112b3c] to-[#0c1427] p-8 text-gray-100 font-sans">
