@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
   LayoutList,
@@ -9,6 +9,7 @@ import {
   Layers,
   Tag,
   Clock,
+  Inbox, // Icon for empty state
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -17,8 +18,7 @@ const API = 'http://localhost:4000/api';
 function getDaysLeft(dueDate) {
   const today = new Date();
   const due = new Date(dueDate);
-  // Clear time portion for accurate day diff
-  const diffTime = due.setHours(0,0,0,0) - today.setHours(0,0,0,0);
+  const diffTime = due.setHours(0, 0, 0, 0) - today.setHours(0, 0, 0, 0);
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
@@ -39,13 +39,12 @@ export default function TodoDisplay() {
   const [filterSection, setFilterSection] = useState('');
   const [viewMode, setViewMode] = useState('list');
   const [showFilters, setShowFilters] = useState(false);
-  const [, setTick] = useState(0); // dummy state to update every second
+  const [, setTick] = useState(0);
 
   useEffect(() => {
     fetchTodos();
     fetchCourses();
 
-    // For countdown timer update every second
     const interval = setInterval(() => {
       setTick(t => t + 1);
     }, 1000);
@@ -162,95 +161,98 @@ export default function TodoDisplay() {
           </div>
         )}
 
-        <div className={viewMode === 'grid' ? 'grid md:grid-cols-2 gap-6' : 'flex flex-col gap-3'}>
-          {filteredTodos.map(todo => {
-            const daysLeft = getDaysLeft(todo.dueDate);
-            const now = new Date();
-            const dueDateObj = new Date(todo.dueDate);
-           const timeDiffMs = dueDateObj.getTime() + 86400000 - now.getTime();
+        {filteredTodos.length === 0 ? (
+          <div className="flex flex-col items-center justify-center mt-20 text-slate-400 select-none">
+            <Inbox size={48} className="mb-4" />
+            <p className="text-xl font-semibold">No tasks found</p>
+            <p className="mt-2 text-sm text-slate-500">
+              Try adjusting your search or filters.
+            </p>
+          </div>
+        ) : (
+          <div className={viewMode === 'grid' ? 'grid md:grid-cols-2 gap-6' : 'flex flex-col gap-3'}>
+            {filteredTodos.map(todo => {
+              const daysLeft = getDaysLeft(todo.dueDate);
+              const now = new Date();
+              const dueDateObj = new Date(todo.dueDate);
+              const timeDiffMs = dueDateObj.getTime() + 86400000 - now.getTime();
 
-            // Determine badge color and content
-            let badgeContent = null;
-            let badgeClass = '';
-            if (daysLeft === 1) {
-              // Show countdown timer
-              badgeClass = 'bg-red-600 text-white';
-              badgeContent = (
-                <div className="flex items-center gap-1 font-semibold">
-                  <Clock size={16} />
-                  <span>Due Tomorrow: {formatCountdown(timeDiffMs)}</span>
-                </div>
-              );
-            } else if (daysLeft === 2) {
-              badgeClass = 'bg-yellow-500 text-slate-900 font-semibold px-2 py-1 rounded';
-              badgeContent = 'Due in 2 days';
-            } else if (daysLeft === 3) {
-              badgeClass = 'bg-orange-500 text-white font-semibold px-2 py-1 rounded';
-              badgeContent = 'Due in 3 days';
-            } else if (daysLeft > 3) {
-              badgeClass = 'bg-green-600 text-white font-semibold px-2 py-1 rounded';
-              badgeContent = `Due in ${daysLeft} days`;
-            } else if (daysLeft === 0) {
-              badgeClass = 'bg-red-700 text-white font-bold px-2 py-1 rounded';
-              badgeContent = 'Due Today!';
-            } else if (daysLeft < 0) {
-              badgeClass = 'bg-gray-700 text-gray-400 italic px-2 py-1 rounded';
-              badgeContent = 'Overdue';
-            }
-
-            return (
-              <motion.div
-                key={todo._id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 }}
-                className="bg-slate-800 rounded-xl shadow-md hover:shadow-lg p-6 flex flex-col md:flex-row justify-between items-start md:items-center border-l-4 border-teal-500"
-              >
-                <div className="flex flex-col space-y-1 flex-grow min-w-0">
-                  <h3 className="text-xl font-semibold text-teal-300 truncate">{todo.title}</h3>
-                  {todo.description && (
-                    <p className="text-slate-400 text-sm line-clamp-2">{todo.description}</p>
-                  )}
-                  <div className="flex flex-wrap gap-4 mt-2 text-xs text-slate-400 font-medium">
-                    <span className="flex items-center gap-1">
-                      <BookOpen size={14} />
-                      {todo.course?.courseCode} - {todo.course?.courseName}
-                    </span>
-                    <span
-                      className={`flex items-center gap-1 px-2 py-0.5 rounded-md ${
-                        todo.type === 'Lab' ? 'bg-teal-600 text-slate-900' : 'bg-indigo-600 text-white'
-                      }`}
-                    >
-                      <Layers size={14} />
-                      {todo.type}
-                    </span>
-                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-700 text-slate-300">
-                      <Tag size={14} />
-                      {todo.section}
-                    </span>
+              let badgeContent = null;
+              let badgeClass = '';
+              if (daysLeft === 1) {
+                badgeClass = 'bg-red-600 text-white';
+                badgeContent = (
+                  <div className="flex items-center gap-1 font-semibold">
+                    <Clock size={16} />
+                    <span>Due Tomorrow: {formatCountdown(timeDiffMs)}</span>
                   </div>
-                </div>
+                );
+              } else if (daysLeft === 2) {
+                badgeClass = 'bg-yellow-500 text-slate-900 font-semibold px-2 py-1 rounded';
+                badgeContent = 'Due in 2 days';
+              } else if (daysLeft === 3) {
+                badgeClass = 'bg-orange-500 text-white font-semibold px-2 py-1 rounded';
+                badgeContent = 'Due in 3 days';
+              } else if (daysLeft > 3) {
+                badgeClass = 'bg-green-600 text-white font-semibold px-2 py-1 rounded';
+                badgeContent = `Due in ${daysLeft} days`;
+              } else if (daysLeft === 0) {
+                badgeClass = 'bg-red-700 text-white font-bold px-2 py-1 rounded';
+                badgeContent = 'Due Today!';
+              } else if (daysLeft < 0) {
+                badgeClass = 'bg-gray-700 text-gray-400 italic px-2 py-1 rounded';
+                badgeContent = 'Overdue';
+              }
 
-                {/* Due date or countdown badge on right side */}
-                <div className="mt-4 md:mt-0 md:ml-6 min-w-[140px] text-right">
-                  {daysLeft === 1 ? (
-                    <div className={`${badgeClass} inline-flex items-center justify-center w-full rounded px-2 py-1`}>
-                      {badgeContent}
+              return (
+                <motion.div
+                  key={todo._id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.05 }}
+                  className="bg-slate-800 rounded-xl shadow-md hover:shadow-lg p-6 flex flex-col md:flex-row justify-between items-start md:items-center border-l-4 border-teal-500"
+                >
+                  <div className="flex flex-col space-y-1 flex-grow min-w-0">
+                    <h3 className="text-xl font-semibold text-teal-300 truncate">{todo.title}</h3>
+                    {todo.description && (
+                      <p className="text-slate-400 text-sm line-clamp-2">{todo.description}</p>
+                    )}
+                    <div className="flex flex-wrap gap-4 mt-2 text-xs text-slate-400 font-medium">
+                      <span className="flex items-center gap-1">
+                        <BookOpen size={14} />
+                        {todo.course?.courseCode} - {todo.course?.courseName}
+                      </span>
+                      <span
+                        className={`flex items-center gap-1 px-2 py-0.5 rounded-md ${
+                          todo.type === 'Lab' ? 'bg-teal-600 text-slate-900' : 'bg-indigo-600 text-white'
+                        }`}
+                      >
+                        <Layers size={14} />
+                        {todo.type}
+                      </span>
+                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-700 text-slate-300">
+                        <Tag size={14} />
+                        {todo.section}
+                      </span>
                     </div>
-                  ) : (
-                    <div className={`${badgeClass} font-semibold`}>
-                      {badgeContent || (
-                        <>
-                          Due: {new Date(todo.dueDate).toLocaleDateString()}
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
+                  </div>
+
+                  <div className="mt-4 md:mt-0 md:ml-6 min-w-[140px] text-right">
+                    {daysLeft === 1 ? (
+                      <div className={`${badgeClass} inline-flex items-center justify-center w-full rounded px-2 py-1`}>
+                        {badgeContent}
+                      </div>
+                    ) : (
+                      <div className={`${badgeClass} font-semibold`}>
+                        {badgeContent || <>Due: {new Date(todo.dueDate).toLocaleDateString()}</>}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
